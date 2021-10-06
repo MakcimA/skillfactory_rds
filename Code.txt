@@ -1,0 +1,447 @@
+WITH table_1 AS (
+-- Информация о длительности полета по графику, актуальная длительность полета и задержка (прилёт раньше)
+select
+    a.flight_id,
+    EXTRACT(EPOCH FROM (a.scheduled_flytime)) / 60 scheduled_flytime,
+    EXTRACT(EPOCH FROM (a.actual_flytime)) / 60 actual_flytime,
+    EXTRACT(EPOCH FROM (a.actual_flytime - a.scheduled_flytime)) / 60 flyminute_diff
+from
+    (select
+        f.flight_id,
+        scheduled_arrival,
+        scheduled_departure,
+        f.scheduled_arrival-f.scheduled_departure scheduled_flytime,
+        actual_arrival,
+        actual_departure,
+        f.actual_arrival-f.actual_departure actual_flytime
+    from
+        dst_project.flights f) a
+    ),
+    
+     table_2 AS (
+-- Информация о купленных билетах, вместимости самолета и заполняемости на рейсе
+with a AS
+    (SELECT s.aircraft_code,
+          count(DISTINCT s.seat_no) AS total_seats
+    FROM dst_project.seats s
+    GROUP BY s.aircraft_code)
+SELECT
+    f.flight_id,
+    f.aircraft_code,
+    count(b.seat_no)::numeric bought_seats,
+    a.total_seats::numeric,
+    (count(b.seat_no)::numeric/a.total_seats::numeric)*100 occupied_seats
+from
+    dst_project.flights f
+    join dst_project.boarding_passes b on f.flight_id = b.flight_id
+    join a on f.aircraft_code = a.aircraft_code
+group by
+    f.flight_id,
+    a.total_seats         
+     ),
+
+     table_3 AS (
+-- Информация о расходе топлива по каждому самолету (тонн в минуту)
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.03879'::numeric fuel_per_minute
+FROM dst_project.seats s
+join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = '319'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.04167'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = '320'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.04808'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = '321'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.04'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = '733'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.0758'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = '763'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.13'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = '773'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.002267'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = 'CN1'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.01833'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = 'CR2'
+GROUP BY s.aircraft_code, a.model
+union all
+SELECT s.aircraft_code,
+        a.model,
+        count(DISTINCT s.seat_no) AS total_seats,
+        '0.02833'::numeric fuel_per_minute
+FROM dst_project.seats s
+    join dst_project.aircrafts a on s.aircraft_code = a.aircraft_code
+WHERE s.aircraft_code = 'SU9'
+GROUP BY s.aircraft_code, a.model         
+     ),
+        
+     table_4 AS (
+-- Информация о цене топлива за тонну в зависимости от месяца
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '34842'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2016)
+    and (date_part('month', f.scheduled_departure) in (8))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '37158'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2016)
+    and (date_part('month', f.scheduled_departure) in (9))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '35695'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2016)
+    and (date_part('month', f.scheduled_departure) in (10))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '37837'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2016)
+    and (date_part('month', f.scheduled_departure) in (11))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '38867'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2016)
+    and (date_part('month', f.scheduled_departure) in (12))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '41435'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (1))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '39553'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (2))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '38831'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (3))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '38970'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (4))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '37705'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (5))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '37395'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (6))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '37860'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (7))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '41637'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (8))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '40732'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (9))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '42674'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (10))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '45510'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (11))
+union all
+SELECT
+    f.flight_id,
+    f.scheduled_departure,
+    '47101'::real fuel_price
+FROM
+    dst_project.flights f
+where
+    (date_part('year', f.scheduled_departure) = 2017)
+    and (date_part('month', f.scheduled_departure) in (12))       
+     ),
+
+    
+    table_5 AS (
+-- Информация о количеству аэропортов в городе
+with b AS(
+select
+    a.city,
+    count(a.airport_code) airports_in_city
+from
+    dst_project.airports a
+group by
+    1
+order by 2 desc
+)
+select
+    a.city,
+    b.airports_in_city,
+    a.airport_code
+from
+    dst_project.airports a
+    join b on a.city = b.city
+
+    ),
+    
+    table_6 AS (
+-- Информация о купленных билетах, вместимости самолета и заполняемости на рейсе
+select
+    tf.flight_id,
+    b.total_amount booking_amount,
+    tf.amount ticket_price,
+    (b.total_amount - tf.amount) booking_income,
+    ((b.total_amount - tf.amount)/b.total_amount)*100 booking_perc
+from
+    dst_project.bookings b
+    join dst_project.tickets t on b.book_ref = t.book_ref
+    join dst_project.ticket_flights tf on t.ticket_no = tf.ticket_no
+    
+    ),
+    
+    table_7 AS (
+-- Информация о количестве вылетов+прилетов в каждом аэропорту
+with a AS
+(select 
+	f.departure_airport,
+	count(f.flight_id) count_
+	
+from 
+	dst_project.flights f
+group by 1
+order by 1
+), 
+b AS
+(select 
+	f.arrival_airport,
+	count(f.flight_id) count_
+from 
+	dst_project.flights f
+group by 1
+order by 1
+)
+select
+    air.city,
+    b.arrival_airport,
+    a.count_+b.count_ airport_traffic,
+    (((a.count_+b.count_)::numeric)/283578581::numeric)*100 share_of_traffic
+    
+from
+    a join b on a.departure_airport = b.arrival_airport
+    join dst_project.airports air on a.departure_airport = air.airport_code
+    ),
+    
+    
+    table_8 AS (
+-- Информация о количестве купленых билетов на каждом рейсе и их сумма    
+SELECT 
+    flight_id, 
+    COUNT(ticket_no) bought_seats, 
+    SUM(amount) sum_ticket
+FROM 
+    dst_project.ticket_flights
+GROUP BY 
+    flight_id
+    ),
+    
+    
+    table_9 AS (
+-- Информация о количестве билетов по классам для каждого рейса  
+SELECT 
+    tf.flight_id,
+    count(CASE WHEN tf.fare_conditions = 'Economy' THEN tf.fare_conditions END)  AS ticket_economy,
+    count(CASE WHEN tf.fare_conditions = 'Comfort' THEN tf.fare_conditions END)  AS ticket_comfort,
+    count(CASE WHEN tf.fare_conditions = 'Business' THEN tf.fare_conditions END) AS ticket_bisiness
+FROM 
+    dst_project.ticket_flights AS tf
+GROUP BY 1
+    )
+    
+    
+-- Финальный запрос объединяет все ваши созданные таблицы в одну и выводит нужную информацию
+SELECT
+    f.flight_id,
+    f.flight_no,
+    f.scheduled_departure,
+    f.scheduled_arrival,
+    f.actual_departure,
+    f.actual_arrival,
+    table_1.scheduled_flytime,
+    table_1.actual_flytime,
+    table_1.flyminute_diff,
+    f.departure_airport,
+    f.arrival_airport,
+    f.status,
+    table_3.model,
+    table_2.aircraft_code,
+    table_3.fuel_per_minute,
+    table_2.total_seats,
+    table_2.bought_seats,
+    table_2.occupied_seats,
+    table_9.ticket_economy,
+    table_9.ticket_comfort,
+    table_9.ticket_bisiness,
+    table_5.city,
+    table_5.airports_in_city,
+    table_7.airport_traffic,
+    table_7.share_of_traffic,
+    table_6.booking_amount,
+    table_6.ticket_price,
+    table_6.booking_income,
+    table_6.booking_perc,
+    table_4.fuel_price,
+    table_8.sum_ticket
+    
+
+FROM dst_project.flights f
+         LEFT JOIN table_1 ON f.flight_id = table_1.flight_id
+         LEFT JOIN table_2 ON f.flight_id = table_2.flight_id
+         LEFT JOIN table_3 ON f.aircraft_code = table_3.aircraft_code
+         LEFT JOIN table_4 ON f.flight_id = table_4.flight_id
+         LEFT JOIN table_5 ON f.arrival_airport = table_5.airport_code
+         LEFT JOIN table_6 ON f.flight_id = table_6.flight_id
+         LEFT JOIN table_7 ON f.arrival_airport = table_7.arrival_airport
+         LEFT JOIN table_8 ON f.flight_id = table_8.flight_id
+         LEFT JOIN table_9 ON f.flight_id = table_9.flight_id   
+
+
+-- Не забываем про условие задачи
+WHERE f.departure_airport = 'AAQ'
+  AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01', '2017-02-01', '2017-12-01'))
+  AND status not in ('Cancelled')
