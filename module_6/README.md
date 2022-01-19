@@ -1,0 +1,1 @@
+![Иллюстрация к проекту](https://github.com/MakcimA/skillfactory_rds/blob/main/module_6/car_prediction.JPG)
